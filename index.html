@@ -169,6 +169,22 @@ button:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
 .review button{border:0;background:none;font-size:20px;cursor:pointer;width:40px;height:40px;border-radius:50%}
 .perfect{text-align:center;padding:16px;background:var(--okbg);border-radius:14px;margin-bottom:24px;font-weight:700;color:var(--ok)}
 .actions{display:grid;gap:10px}
+@media (max-width:600px){
+  #quiz.spellmode .top{margin-bottom:4px}
+  #quiz.spellmode .pencil{margin-bottom:10px}
+  #quiz.spellmode .notebook{padding:12px 12px 8px}
+  #quiz.spellmode .lines{height:84px;background:
+    linear-gradient(var(--rule),var(--rule)) 0 10px/100% 1px no-repeat,
+    linear-gradient(var(--rule),var(--rule)) 0 32px/100% 1px no-repeat,
+    linear-gradient(var(--red),var(--red)) 0 54px/100% 2px no-repeat,
+    linear-gradient(var(--rule),var(--rule)) 0 76px/100% 1px no-repeat}
+  #quiz.spellmode .word.zh{font-size:clamp(24px,7vw,32px);transform:translateY(-26px)}
+  #quiz.spellmode .hint{margin-top:6px;font-size:14px}
+  #quiz.spellmode .spell{margin-top:10px}
+  #quiz.spellmode .blanks{margin-bottom:8px;font-size:20px}
+  #quiz.spellmode .spell input{font-size:22px;padding:10px 12px}
+}
+body.kb main{padding-top:8px;padding-bottom:calc(var(--kb, 0px) + 40px)}
 @media (max-width:420px){.opts{grid-template-columns:1fr}.opt{min-height:58px}}
 @media (prefers-reduced-motion: reduce){.pencil .body{transition:none}}
 .players{display:flex;flex-wrap:wrap;gap:8px}
@@ -527,11 +543,13 @@ function render(){
   const box = $('opts'); box.innerHTML = '';
   const sp = $('spell'), inp = $('spellInput');
   sp.hidden = q.type !== 'spell';
+  $('quiz').classList.toggle('spellmode', q.type === 'spell');
   box.hidden = q.type === 'spell';
   if (q.type === 'spell'){
     $('blanks').textContent = (settings.hint === 'off' || exam) ? '' : q.w.e.split('').map(ch => /[a-z]/i.test(ch) ? '_' : (ch === ' ' ? ' ' : ch)).join('') + `（${q.w.e.replace(/[^a-z]/gi,'').length} 個字母）`;
     inp.value = ''; inp.className = ''; inp.disabled = false; $('spellBtn').disabled = false;
-    setTimeout(() => inp.focus({preventScroll:true}), 0);
+    inp.focus({preventScroll:true});
+    requestAnimationFrame(keepInputVisible);
   } else {
     q.options.forEach((o, k) => {
       const b = document.createElement('button');
@@ -581,8 +599,10 @@ function answer(k, typed){
   if (q.type === 'spell'){
     const target = norm(q.w.e);
     ok = k >= 0 && (norm(typed) === target || norm(typed).replace(/-/g, '') === target.replace(/-/g, ''));
-    $('spellInput').disabled = true; $('spellBtn').disabled = true;
-    if (!exam){ $('spellInput').className = ok ? 'right' : 'wrong'; $('blanks').textContent = q.w.e; }
+    if (!exam){
+      $('spellInput').disabled = true; $('spellBtn').disabled = true;
+      $('spellInput').className = ok ? 'right' : 'wrong'; $('blanks').textContent = q.w.e;
+    }
   } else {
     const correctIdx = q.options.indexOf(q.w);
     ok = k === correctIdx;
@@ -767,6 +787,23 @@ document.addEventListener('keydown', e => {
   if (!locked && qs[idx] && qs[idx].type !== 'spell' && /^[1-4]$/.test(e.key)) answer(Number(e.key) - 1);
   else if (locked && !exam && (e.key === 'Enter' || e.key === ' ') && document.activeElement?.id !== 'nextBtn'){ e.preventDefault(); next(); }
 });
+/* 手機鍵盤彈出時，把輸入區捲到鍵盤上方 */
+function keepInputVisible(){
+  const vv = window.visualViewport;
+  const kb = vv ? Math.max(0, window.innerHeight - vv.height) : 0;
+  document.body.classList.toggle('kb', kb > 80);
+  document.body.style.setProperty('--kb', kb + 'px');
+  const inp = $('spellInput');
+  if ($('quiz').hidden || $('spell').hidden || document.activeElement !== inp) return;
+  const r = document.querySelector('.spell-row').getBoundingClientRect();
+  const top = vv ? vv.offsetTop : 0;
+  const h = vv ? vv.height : window.innerHeight;
+  const overflow = r.bottom - (top + h - 12);
+  if (overflow > 0) window.scrollBy(0, overflow);
+}
+if (window.visualViewport) window.visualViewport.addEventListener('resize', keepInputVisible);
+$('spellInput').addEventListener('focus', () => setTimeout(keepInputVisible, 350));
+
 renderPlayers();
 show('setup');
 initStore();
