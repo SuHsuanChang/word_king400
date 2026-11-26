@@ -186,6 +186,24 @@ button:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
   #quiz.spellmode .spell input{font-size:22px;padding:10px 12px}
 }
 body.kb main{padding-top:8px;padding-bottom:calc(var(--kb, 0px) + 40px)}
+.kbtimer{display:none}
+body.kb #quiz.spellmode .kbtimer{
+  display:flex;align-items:center;gap:12px;margin:0 0 10px;font-weight:700;font-size:16px;color:var(--soft);
+}
+body.kb .kbtimer .mini{flex:1;height:10px;border-radius:5px;background:var(--line);overflow:hidden}
+body.kb .kbtimer .mini span{display:block;height:100%;width:100%;background:var(--sun);transition:width 1s linear}
+body.kb .kbtimer .kbsecs{font-variant-numeric:tabular-nums;font-size:22px;color:var(--ink);min-width:3.6em;text-align:right}
+body.kb .kbtimer .kbsecs.warn{color:var(--red)}
+body.kb .kbtimer.warn .mini span{background:var(--red)}
+body.kb #quiz.spellmode .notebook{padding:12px 12px 8px}
+body.kb #quiz.spellmode .lines{height:84px;background:
+  linear-gradient(var(--rule),var(--rule)) 0 10px/100% 1px no-repeat,
+  linear-gradient(var(--rule),var(--rule)) 0 32px/100% 1px no-repeat,
+  linear-gradient(var(--red),var(--red)) 0 54px/100% 2px no-repeat,
+  linear-gradient(var(--rule),var(--rule)) 0 76px/100% 1px no-repeat}
+body.kb #quiz.spellmode .word.zh{font-size:clamp(24px,5vw,34px);transform:translateY(-26px)}
+body.kb #quiz.spellmode .hint{margin-top:6px;font-size:14px}
+body.kb #quiz.spellmode .spell{margin-top:10px}
 @media (max-width:420px){.opts{grid-template-columns:1fr}.opt{min-height:58px}}
 @media (prefers-reduced-motion: reduce){.pencil .body{transition:none}}
 .players{display:flex;flex-wrap:wrap;gap:8px}
@@ -297,6 +315,11 @@ body.kb main{padding-top:8px;padding-bottom:calc(var(--kb, 0px) + 40px)}
   <p class="hint" id="hint"></p>
   <div class="opts" id="opts"></div>
   <div class="spell" id="spell" hidden>
+    <div class="kbtimer" aria-hidden="true">
+      <span id="kbCount"></span>
+      <div class="mini"><span id="kbBar"></span></div>
+      <span class="kbsecs" id="kbSecs"></span>
+    </div>
     <p class="blanks" id="blanks" aria-hidden="true"></p>
     <div class="spell-row">
       <input id="spellInput" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done" aria-label="輸入英文拼字" placeholder="在這裡輸入">
@@ -533,6 +556,7 @@ function render(){
   locked = false;
   const q = qs[idx];
   $('qNo').textContent = idx + 1;
+  $('kbCount').textContent = `第 ${idx + 1} / ${qs.length} 題`;
   const p = $('prompt');
   if (q.type === 'e2c'){
     p.className = 'word en' + (q.w.e.length > 10 ? ' long' : '');
@@ -575,6 +599,12 @@ function tick(reset){
   if (!reset) left--;
   $('secs').textContent = left + ' 秒';
   $('secs').classList.toggle('warn', left <= 10);
+  $('kbSecs').textContent = left + ' 秒';
+  $('kbSecs').classList.toggle('warn', left <= 10);
+  document.querySelector('.kbtimer').classList.toggle('warn', left <= 10);
+  const kbBar = $('kbBar');
+  if (reset){ kbBar.style.transition = 'none'; kbBar.style.width = '100%'; kbBar.offsetWidth; kbBar.style.transition = ''; }
+  else kbBar.style.width = (left / LIMIT * 100) + '%';
   const bar = $('bar');
   if (reset){ bar.style.transition = 'none'; bar.style.width = '100%'; bar.offsetWidth; bar.style.transition = ''; }
   else bar.style.width = (left / LIMIT * 100) + '%';
